@@ -1,0 +1,9 @@
+# personal chat conversations
+data/
+
+# jupyter notebooks which may contain personal details
+notebooks/
+
+# virtual environments
+env/
+env3/
