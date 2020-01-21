@@ -3,6 +3,7 @@ data/
 
 # jupyter notebooks which may contain personal details
 notebooks/
+.ipynb_checkpoints/
 
 # virtual environments
 env/
