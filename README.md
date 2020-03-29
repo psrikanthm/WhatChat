@@ -3,8 +3,8 @@ by clicking on a person's profile in conversation window
 and -> Export Chat, lets name it "_chat.txt".
 
 Though only parser to extract texts from Whatsapp conversations
-is implemented currently. The techniques used here can be extended to any kind of mesaging tools 
-which allow users to download their conversations 
+is implemented currently. The techniques used here can be extended to any kind 
+of mesaging platforms which allow users to download their conversations 
 
 First convert the chat file into list of instances of `Message`
 making sure that the order of conversation is preserved.
