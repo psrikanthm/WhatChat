@@ -8,3 +8,6 @@ notebooks/
 # virtual environments
 env/
 env3/
+
+# VIM swap files
+.*.swp

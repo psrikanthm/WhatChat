@@ -5,6 +5,8 @@ from collections import Counter, OrderedDict, defaultdict
 import spacy
 from nltk.corpus import words
 from emoji import UNICODE_EMOJI
+from datetime import datetime
+import pandas as pd
 
 class OrderedCounter(Counter, OrderedDict):
     """
@@ -177,7 +179,7 @@ class Analyze:
         return nr_questions
 
     @property
-    def n_frequent_words(self, n=20):
+    def n_frequent_words(self, n=50):
         """
             `n` frequent words used by each person
         """
@@ -192,19 +194,27 @@ class Analyze:
         return topwords_dict
 
     @property
-    def common_words(self, n=200):
+    def common_words(self, n=400):
         """
             Words that are most common between top `n` words of 
             all the speakers
         """
         words_lists = []
+        same_words_count = {}
         for person, words in self.words_dict.items():
             # we need to remove the stopwords first
-            filter_words = self.__filter_words(words)
-            top_words = [w for w ,_ in self.sort_by_frequency(filter_words)[:n]]
+            filter_words = self.sort_by_frequency(self.__filter_words(words))[:n]
+            
+            top_words = [w for w,c in filter_words]
+            #for w,_ filter_words]
 
+            for w,c in filter_words:
+                same_words_count[w] = same_words_count.get(w,0) + c
+    
             words_lists.append(set(top_words))
-        return set.intersection(*words_lists)
+        
+        same_words = set.intersection(*words_lists)
+        return {w:same_words_count[w] for w in same_words}
 
     @property
     def one_word_replies(self):
@@ -257,20 +267,47 @@ class Analyze:
         prev_m = self.messages[0]
         prev_time = prev_m.datetime
         delays = []
+        timestamps = []
 
         for m in self.messages[1:]:
             cur_time = m.datetime
             delay = cur_time - prev_time
-
+            
+            timestamps.append(m.datetime_str)
             delays.append(delay)
             prev_time = cur_time
 
         delays = np.array(delays)
+        timestamps = np.array(timestamps)
+
         arg_i = np.argpartition(delays, -n)[-n:]
         arg_i_sort = arg_i[np.argsort(delays[arg_i])][::-1]
+        
+        sorted_timestamps = timestamps[arg_i_sort]
 
         sorted_delays = [round(x/3600.0,2) for x in delays[arg_i_sort]]
-        return sorted_delays
+        return sorted_delays, sorted_timestamps
+
+    @property
+    def nr_messages_per_window(self, window_size=24):
+        """
+            count the number of messages sent or received during the window size
+            Args:
+                window_size: int, the window size to count the number of messages in hours
+            Return:
+                Pandas data series where the index is time stamp with window size separation
+                    and values are number of messages in that window size
+        """
+        count_num = {}
+        for m in self.messages:
+            count_num[m.datetime_str] = count_num.get(m.datetime_str, 0) + 1
+
+        timestamps = [datetime.strptime(time_string, '%Y-%m-%d, %I:%M:%S %p') for
+                                time_string in count_num.keys()]
+        values = list(count_num.values())
+        raw_data = pd.Series(index=timestamps, data=values, name='num_messages')
+        data = raw_data.resample('{}H'.format(window_size)).sum()
+        return data
 
     @property
     def nr_conv_starts(self):
@@ -300,7 +337,7 @@ class Analyze:
             Number of emojis used by each participant
         """
         emojis_per_person = {k:[] for k in self.filter_messages_dict.keys()}
-        for m in messages:
+        for m in self.messages:
             emojis = []
             for emoji in UNICODE_EMOJI:
                 emoji_count = m.content.count(emoji)
@@ -311,19 +348,19 @@ class Analyze:
         return {k: len(v) for k,v in emojis_per_person.items()}
 
     @property
-    def emojis(self, n=20):
+    def emojis(self, n=40):
         """
             Top `n` emojis used by each person
         """
         emojis_per_person = {k:[] for k in self.filter_messages_dict.keys()}
-        for m in messages:
+        for m in self.messages:
             emojis = []
             for emoji in UNICODE_EMOJI:
                 emoji_count = m.content.count(emoji)
                 emojis += ([emoji] * emoji_count)
             emojis_per_person[m.person] += emojis
 
-        top_emojis = {k: [w for w,_ in self.sort_by_frequency(v)[:n]] for
+        top_emojis = {k: {w:c for w,c in self.sort_by_frequency(v)[:n]} for
                                 k,v in emojis_per_person.items()}
         return top_emojis
 
@@ -345,26 +382,26 @@ class Analyze:
         
 if __name__ == '__main__':
     from message import read_whatsapp_chat_file
-    messages = read_whatsapp_chat_file('_chat.txt')
+    messages = read_whatsapp_chat_file('data/_chat.txt')
     chat = Analyze(messages)
-    #print(chat.number_of_messages)
-    #print('--------------------------')
-    #print(chat.number_of_words)
-    #print('--------------------------')
-    #print(chat.number_of_questions)
-    #print('--------------------------')
-    #print(chat.n_frequent_words)
-    #print('--------------------------')
-    #print(chat.common_words)
-    #print('--------------------------')
-    #print(chat.one_word_replies)
-    #print('--------------------------')
-    #print(chat.average_resp_times)
-    #print('--------------------------')
-    #print(chat.max_delays)
-    #print('--------------------------')
-    #print(chat.nr_conv_starts)
-    #print('--------------------------')
+    print(chat.number_of_messages)
+    print('--------------------------')
+    print(chat.number_of_words)
+    print('--------------------------')
+    print(chat.number_of_questions)
+    print('--------------------------')
+    print(chat.n_frequent_words)
+    print('--------------------------')
+    print(chat.common_words)
+    print('--------------------------')
+    print(chat.one_word_replies)
+    print('--------------------------')
+    print(chat.average_resp_times)
+    print('--------------------------')
+    print(chat.max_delays)
+    print('--------------------------')
+    print(chat.nr_conv_starts)
+    print('--------------------------')
     print(chat.nr_emojis)
     print('--------------------------')
     print(chat.emojis)
@@ -372,3 +409,8 @@ if __name__ == '__main__':
     print(chat.common_emojis)
     print('--------------------------')
     print(chat.nr_unique_emojis)
+    print('--------------------------')
+    print(chat.nr_messages_per_window)
+    print('--------------------------')
+    print(chat.max_delays)
+    print('--------------------------')
