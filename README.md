@@ -1,6 +1,6 @@
 One can obtain the text conversations from WhatsApp
 by clicking on a person's profile in conversation window 
-and -> Export Chat.
+and -> Export Chat and lets name it "_chat.txt".
 
 Though currently only parser to extract texts from Whatsapp conversations
 is implemented, The techniques used here can be extended to any kind of mesaging tools 
@@ -10,7 +10,7 @@ First convert the chat file into list of instances of `Message`
 making sure that the order of conversation is preserved.
 ```python
 from message import read_whatsapp_chat_file
-messages = read_whatsapp_chat_file('data/_chat.txt')
+messages = read_whatsapp_chat_file('_chat.txt')
 ```
 
 We can pass the list of `Message` objects to `Analyze` class
